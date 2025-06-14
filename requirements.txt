@@ -1,2 +1,17 @@
+# For grabbing SEC data
 requests
 tqdm 
+bs4
+
+# For creating embeddings
+typeguard
+sentence-transformers
+torch
+
+# For indexing embeddings
+faiss-cpu
+numpy
+
+# For LLM example
+transformers
+sentencepiece
