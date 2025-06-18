@@ -1,16 +1,20 @@
 # Core data utilities
 requests==2.31.0
 tqdm==4.64.0
+bs4
 
 # Numerical and array operations
 numpy==1.24.0
 numpy-financial==1.0.0
 
-# PyTorch for embedding and model support
+# Embedding and LLM dependencies
 torch==2.0.1
 torchaudio==2.0.2
 torchtext==0.6.0
 torchvision==0.15.2
-
-# Tokenizer library for LLMs
 sentencepiece==0.2.0
+sentence-transformers
+transformers
+faiss-cpu
+accelerate
+typeguard
