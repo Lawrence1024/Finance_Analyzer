@@ -9,7 +9,8 @@ def download_and_extract_zip(url, extract_to='data/'):
     
     # SEC requires a valid user-agent
     headers = {
-        'User-Agent': 'lawrence92@berkeley.edu'
+        # TODO: Update the User-Agent with your email!
+        'User-Agent': ''
     }
     
     print(f"Downloading from {url}...")

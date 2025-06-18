@@ -37,6 +37,22 @@ You’ll need:
 - `huggingface-hub`
 
 
+### 🔐 IMPORTANT: Add Your Email to SEC Requests
+
+Before running script `1_sec_json_data_retriever.py`, open the file and **update the `User-Agent` header** with your own email address.
+
+This is required by the SEC to access public data.
+
+```python
+headers = {
+    # TODO: Update the User-Agent with your email!
+    'User-Agent': 'your_email@example.com'
+}
+```
+
+📌 If this is not set, the SEC server will reject your request with a 403 or 400 error.
+
+
 ### 2. Run the Full Data Pipeline
 
 ```bash
