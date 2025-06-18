@@ -1,18 +1,16 @@
-# For grabbing SEC data
-requests
-tqdm 
-bs4
+# Core data utilities
+requests==2.31.0
+tqdm==4.64.0
 
-# For creating embeddings
-typeguard
-sentence-transformers
-torch
+# Numerical and array operations
+numpy==1.24.0
+numpy-financial==1.0.0
 
-# For indexing embeddings
-faiss-cpu
-numpy
+# PyTorch for embedding and model support
+torch==2.0.1
+torchaudio==2.0.2
+torchtext==0.6.0
+torchvision==0.15.2
 
-# For LLM example
-transformers
-sentencepiece
-accelerate
+# Tokenizer library for LLMs
+sentencepiece==0.2.0
