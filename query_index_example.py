@@ -1,38 +1,33 @@
 import faiss
+import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# Directory for the FAISS index
-INDEX_DIR = 'data/faiss_index'  # Directory where the FAISS index is stored
-QUERY_MODEL = 'all-MiniLM-L6-v2'  # Pre-trained model for query embedding
+# Paths
+INDEX_PATH = 'data/faiss_index_chunked/sec_chunked_index.faiss'
+META_PATH = 'data/faiss_index_chunked/chunk_metadata.json'
 
-# Load the pre-trained Sentence-BERT model for generating query embeddings
-model = SentenceTransformer(QUERY_MODEL)
+# Load index and metadata
+index = faiss.read_index(INDEX_PATH)
+with open(META_PATH, 'r') as f:
+    metadata = json.load(f)
 
-# Function to load the FAISS index
-def load_faiss_index():
-    index_path = f"{INDEX_DIR}/embeddings_index.faiss"
-    return faiss.read_index(index_path)
+# Load embedding model
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Function to query the FAISS index
-def query_faiss_index(query, top_k=5):
-    # Generate the query embedding
-    query_embedding = model.encode([query])
+def search(query, top_k=5):
+    query_embedding = model.encode(query).astype('float32')
+    scores, indices = index.search(np.array([query_embedding]), top_k)
 
-    # Load the FAISS index
-    index = load_faiss_index()
+    print(f"\nTop {top_k} results for query: '{query}'\n")
+    for rank, idx in enumerate(indices[0]):
+        meta = metadata[idx]
+        print(f"[{rank+1}] {meta['file']} | {meta['form']} {meta['year']} | {meta['section']}")
+        print(f"     → {meta['text'][:200]}...\n")
 
-    # Perform the search (find the top k most similar embeddings)
-    distances, indices = index.search(np.array(query_embedding), top_k)
-
-    # Get the most similar files based on the search
-    return indices[0], distances[0]
-
-# Example usage
-query = "What are the key financial metrics for the company in 2019?"
-indices, distances = query_faiss_index(query)
-
-# Output the results
-print("Top-k most similar documents based on the query:")
-for idx, distance in zip(indices, distances):
-    print(f"Document index: {idx}, Similarity Distance: {distance}")
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python sec_query_retriever.py 'Your question here'")
+    else:
+        search(' '.join(sys.argv[1:]))

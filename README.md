@@ -1,146 +1,124 @@
-# 🚀 My Awesome Project
+# 📊 SEC Financial Statement QA Chatbot (RAG + Local LLM)
 
-Welcome to **My Awesome Project**! This README will guide you through setting up the project on your local machine.
+This project builds a **retrieval-augmented generation (RAG)** pipeline over SEC 10-K/10-Q filings, enabling a local language model to answer questions like:
 
-<!-- ---
+> "What was the company’s revenue in 2019?"  
+> "Summarize the management discussion section from the latest 10-K."
 
-## 📦 Prerequisites
+It uses chunked embedding search with FAISS and a local LLM (e.g., TinyLlama) to generate grounded answers.
 
-Before you begin, make sure you have the following installed:
 
-- [Git](https://git-scm.com/)
-- [Python 3.10+](https://www.python.org/) (or your project's language/runtime)
-- [Docker](https://www.docker.com/) *(optional)*
-- Code editor (e.g., VSCode)
+## 📂 Project Workflow
 
---- -->
+| Step | Script                          | Description                                          |
+|------|---------------------------------|------------------------------------------------------|
+| 1️⃣   | `1_sec_json_data_retriever.py`     | Download SEC `companyfacts.zip` and `submissions.zip` metadata |
+| 2️⃣   | `2_sec_text_data_retriever.py`     | Use metadata to fetch full 10-K / 10-Q HTML files    |
+| 3️⃣   | `3_sec_text_data_processor.py`     | Extract, clean, and chunk filings with metadata      |
+| 4️⃣   | `4_sec_text_embedding_generator.py`| Generate SBERT embeddings for each chunk             |
+| 5️⃣   | `5_embedding_indexer.py`           | Build FAISS index and save metadata mapping          |
+| 6️⃣   | `6_sec_local_llm_chat.py`          | Query using local LLM + retrieved context            |
 
 ## 🛠️ Setup Instructions
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/my-awesome-project.git
-cd my-awesome-project
-```
-
-### 2. Create a Virtual Environment
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-```
-
-### 3. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Download data
+You’ll need:
+
+- `transformers`
+- `sentence-transformers`
+- `faiss-cpu`
+- `tqdm`
+- `beautifulsoup4`
+- `huggingface-hub`
+
+
+### 2. Run the Full Data Pipeline
 
 ```bash
-python3 data_grbber.py # or visit https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+# Download JSON bulk metadata
+python 1_sec_json_data_retriever.py
+
+# Fetch actual HTML filings
+python 2_sec_text_data_retriever.py
+
+# Clean and chunk documents
+python 3_sec_text_data_processor.py
+
+# Embed each chunk
+python 4_sec_text_embedding_generator.py
+
+# Index embeddings with FAISS
+python 5_embedding_indexer.py
 ```
-This should create two folders (submissions_data and xbrl_data). Detailed explination on the two folders can be found here. 
-
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
 
-## 📁 EDGAR Bulk Data Folders Overview
-
-After unzipping the SEC bulk data ZIP files, you'll get two main folders:
-
----
-
-### 📁 `xbrl_data/` (from `companyfacts.zip`)
-
-This folder contains:
-- **One JSON file per company** (by CIK)
-- Each file includes **financial statement data** extracted from 10-Ks, 10-Qs, etc.
-- Data is structured by accounting concepts like:
-  - `NetIncomeLoss`
-  - `Revenues`
-  - `Assets`
-  - `EarningsPerShareDiluted`
-- This is the **main source of numerical financial data** to train machine learning models.
-
-> 🧾 “What did each company report?” (Actual financial numbers, by quarter/year)
-
----
-
-### 📁 `submissions_data/` (from `submissions.zip`)
-
-This folder contains:
-- **Filing metadata** for each company (also by CIK)
-- Each file lists filings with:
-  - Filing date
-  - Form type (`10-K`, `10-Q`, etc.)
-  - Accession numbers (used to build URLs to documents)
-
-> 📅 “When did the company file, and what documents?”
-
----
-
-### 🧠 Summary
-
-| Folder              | What's Inside?                      | Use Case                              |
-|--------------------|--------------------------------------|----------------------------------------|
-| `xbrl_data/`        | Financial numbers (XBRL facts)       | Train ML models on actual financials   |
-| `submissions_data/` | Filing metadata (filing history)     | Track timing, link to raw filings      |
-
-
-<!-- ### 4. Configure Environment Variables
-
-Copy the sample `.env` file and modify it with your settings:
+### 3. Ask Questions Using a Local Model
 
 ```bash
-cp .env.example .env
+python 6_sec_local_llm_chat.py "What is the revenue in 2019?"
 ```
 
-Edit the `.env` file:
+The script will:
+- Embed the query
+- Retrieve relevant chunks from FAISS
+- Send the context to a local model (TinyLlama by default)
+- Print the generated answer
 
-```ini
-API_KEY=your_api_key_here
-DATABASE_URL=your_database_url_here
-DEBUG=True
+> 💡 You can switch to GPT-4 or Claude with a few lines of modification if needed.
+
+
+## 🔍 How It Works
+
+1. Query → SBERT embedding
+2. FAISS retrieves top relevant chunks
+3. Prompt is constructed with context
+4. LLM generates an answer based on the retrieved evidence
+
+
+## 📁 Data Folder Overview
+
+| Folder                        | Description                                          |
+|------------------------------|------------------------------------------------------|
+| `data/xbrl_data/`            | JSON company facts from SEC bulk download           |
+| `data/submissions_data/`     | SEC submission history for each CIK                 |
+| `data/filings_html/`         | Downloaded raw 10-K/10-Q HTML files                 |
+| `data/cleaned_filings/`      | Chunked JSONs with metadata (year, form, section)   |
+| `data/embeddings_chunked/`   | Chunk-level SBERT embeddings                        |
+| `data/faiss_index_chunked/`  | FAISS index and lookup metadata                     |
+
+
+## 🧠 Default Local Model
+
+The default model is:
+
+```
+TinyLlama/TinyLlama-1.1B-Chat-v1.0
 ```
 
-### 5. Run the Application
+If you want to use larger or gated models:
+1. Get access on HuggingFace
+2. Run: `huggingface-cli login`
+3. Replace the model ID in `6_sec_local_llm_chat.py`
 
-```bash
-python main.py
-```
 
-Or using Docker:
+## 🚀 Future Improvements
 
-```bash
-docker compose up --build
-```
+- OpenAI/Claude fallback option
+- Streamlit or Gradio chat interface
+- Incremental updates from EDGAR
+- Financial summarization or comparison engine
+- CSV or PDF export of Q&A answers
 
 ---
 
-## ✅ Test the Setup
+## 🤝 Contact
 
-To verify everything is working:
+Created by Lawrence Shieh
+📧 lawrence92@berkeley.edu
 
-1. Open your browser and go to: `http://localhost:8000`
-2. Ensure no errors appear in the terminal
-3. Optionally, run tests:
-
-```bash
-pytest
-```
-
----
-
-## 💡 Tips
-
-- Use `black` and `flake8` to format and lint your code.
-- Run `deactivate` to exit the virtual environment when done.
-
----
-
-## 📬 Need Help?
-
-If you encounter issues, open an [issue](https://github.com/your-username/my-awesome-project/issues) or contact the maintainer. -->
+PRs and suggestions welcome!
